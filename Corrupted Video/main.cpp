@@ -2,12 +2,18 @@
 
 #include "corrupted_video.h"
 
+struct greater_sort
+{
+	template<class T>
+	bool operator()(T const &a, T const &b) const { return a > b; }
+};
+
 int main()
 {
 	// Extract frames from original video
 	string videoname = "corrupted_video.mp4";
 	vector<Mat> frames = extract_frames(videoname, true);
-	//save_output_video(frames, "output.avi", 30, frames[0].size());
+	//save_output_video(frames, "output.avi", 30, frames[0].size(), true);
 	//save_frames(frames, "./frames/Frame", true);
 
 	// Parameters for histograms HSV in 2D
@@ -79,33 +85,108 @@ int main()
 	//save_frames(filter_frames, "./frames/filter/Frame", true);
 
 	nbFrames -= index_noises.size();		// new number of frames
-	vector<vector<double>> compare_histos;	// store histogram comparisons of frame by frame
+	vector<vector<pair<double, int>>> compare_histos;	// store histogram comparisons of frame by frame
 	compare_histos.resize(nbFrames);
-
+	
 	for (int i = 0; i < nbFrames; i++)
-	{
-		int count = 0;
-		double max = 0;
-		index = 0;
+	{	
+		double max = 0, second_max = 0;
+		int ind_max = 0, ind_2nd_max = 0;
 		for (int j = 0; j < nbFrames; j++)
 		{
-			compare_histos[i].push_back(compareHist(filter_histos[i], filter_histos[j], compare_method));
-			//cout << "0-" << i << " = " << compare << endl;
-			if (compare_histos[i][j] == 1.0f)
-				compare_histos[i][j] = 0;
-			if (compare_histos[i][j] > max)
+			compare_histos[i].push_back(make_pair(compareHist(filter_histos[i], filter_histos[j], compare_method),j));
+			if (compare_histos[i][j].first == 1.0f)
+				compare_histos[i][j].first = 0;
+			if (compare_histos[i][j].first > max)
 			{
-				max = compare_histos[i][j];
-				index = j;
+				second_max = max;
+				ind_2nd_max = ind_max;
+				max = compare_histos[i][j].first;
+				ind_max = j;
 			}
-			if (compare_histos[i][j] > 0.99f)
-				count++;
+			else if (compare_histos[i][j].first > second_max)
+			{
+				second_max = compare_histos[i][j].first;
+				ind_2nd_max = j;
+			}
 		}
-		cout << i << " | count = " << count << " | max = " << max << " | index = " << index << endl;
+		sort(compare_histos[i].begin(), compare_histos[i].end(), greater_sort());
+		cout << i << " | max = " << max << " - " << ind_max << " | 2nd max = " << second_max << " - " << ind_2nd_max << endl;
 	}
 
-	Mat src, hsv;
-	src = frames[5];
+	vector<bool> indexes_check(nbFrames, true);
+	indexes_check[0] = false;
+	vector<int> indexes_first, indexes_reverse;
+	double traceback_threshold = 0.9f;
+
+	indexes_first = trace_frames(indexes_check, compare_histos);
+	indexes_reverse = trace_frames(indexes_check, compare_histos);
+	reverse(indexes_reverse.begin(), indexes_reverse.end());
+
+	vector<Mat> arranged_frames;
+	for each (auto ind in indexes_reverse)
+		arranged_frames.push_back(filter_frames[ind]);
+	arranged_frames.push_back(filter_frames[0]);
+	for each (auto ind in indexes_first)
+		arranged_frames.push_back(filter_frames[ind]);
+
+	save_output_video(arranged_frames, "fixed_output.avi", 30, arranged_frames[0].size(), true);	
+	reverse(arranged_frames.begin(), arranged_frames.end());
+	save_output_video(arranged_frames, "reverse_fixed_output.avi", 30, arranged_frames[0].size(), true);
+	//// Trace frames until the end on one side
+	//while (!finished_traceback)
+	//{
+	//	int j = 0;
+	//	bool found_new_index = false;
+	//	while (!found_new_index && j < nbFrames)
+	//	{
+	//		double value = compare_histos[current_index][j].first;
+	//		int ind = compare_histos[current_index][j].second;
+	//		if (indexes_check[ind] == true && value > traceback_threshold)
+	//		{
+	//			current_index = ind;
+	//			indexes_check[current_index] = false;
+	//			indexes_first_order.push_back(current_index);
+	//			found_new_index = true;
+	//		}
+	//		else if (value > traceback_threshold)
+	//			j++;
+	//		else
+	//		{
+	//			j = nbFrames;
+	//			finished_traceback = true;
+	//		}
+	//	}
+	//}
+
+	
+	// Trace frames until the end on the other side
+	/*while (!finished_traceback)
+	{
+		int j = 0;
+		bool found_new_index = false;
+		while (!found_new_index && j < nbFrames)
+		{
+			double value = compare_histos[current_index][j].first;
+			int ind = compare_histos[current_index][j].second;
+			if (indexes_check[ind] == true && value > traceback_threshold)
+			{
+				current_index = ind;
+				indexes_check[current_index] = false;
+				indexes_second_order.push_back(current_index);
+				found_new_index = true;
+			}
+			else if (value > traceback_threshold)
+				j++;
+			else
+			{
+				j = nbFrames;
+				finished_traceback = true;
+			}
+		}
+	}*/
+	
+	
 	/*drawHist(frames[0], "Frame0");
 	drawHist(frames[10], "Frame10");
 	drawHist(frames[17], "Frame17");

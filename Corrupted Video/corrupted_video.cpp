@@ -3,11 +3,17 @@
 #include "corrupted_video.h"
 
 // Create a video from an array of frames and store it locally
-void save_output_video(vector<Mat> frames, string output_video, int fps, Size video_size)
+void save_output_video(vector<Mat> frames, string output_video, int fps, Size video_size, bool hsv2bgr)
 {
 	VideoWriter output_cap(output_video, CV_FOURCC('D', 'I', 'V', 'X'), fps, video_size);
 	for each (auto frame in frames)
-		output_cap.write(frame);
+	{
+		// Clone to avoid overwrite on the same address
+		Mat new_frame = frame.clone();
+		if (hsv2bgr)
+			cvtColor(new_frame, new_frame, CV_HSV2BGR);
+		output_cap.write(new_frame);
+	}
 }
 
 // Store all the frames locally at output_folder
@@ -60,6 +66,41 @@ vector<Mat> extract_frames(string input_video, bool extract_hsv)
 	}
 	cout << nbFrames << endl;
 	return frames;
+}
+
+vector<int> trace_frames(vector<bool> &indexes_check, vector<vector<pair<double, int>>> compare_histos)
+{
+	vector<int> indexes_order;
+	int nbFrames = indexes_check.size();
+	int current_index = 0;
+	double traceback_threshold = 0.9f;
+	bool finished_traceback = false;
+	// Trace frames until the end on one side
+	while (!finished_traceback)
+	{
+		int j = 0;
+		bool found_new_index = false;
+		while (!found_new_index && j < nbFrames)
+		{
+			double value = compare_histos[current_index][j].first;
+			int ind = compare_histos[current_index][j].second;
+			if (indexes_check[ind] == true && value > traceback_threshold)
+			{
+				current_index = ind;
+				indexes_check[current_index] = false;
+				indexes_order.push_back(current_index);
+				found_new_index = true;
+			}
+			else if (value > traceback_threshold)
+				j++;
+			else
+			{
+				j = nbFrames;
+				finished_traceback = true;
+			}
+		}
+	}
+	return indexes_order;
 }
 
 // Draw an 1-dimension histogram of an image in RGB
