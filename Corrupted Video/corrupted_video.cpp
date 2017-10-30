@@ -37,7 +37,8 @@ void save_frames(vector<Mat> frames, string output_folder, bool hsv2bgr)
 // extract_hsv = true to have frames in hsv
 vector<Mat> extract_frames(string input_video, bool extract_hsv)
 {
-	VideoCapture cap(input_video);			// capture the video
+	// Capture the video - needs opencv_ffmpeg331_64.dll to extract mp4 - vS needs to be in Release
+	VideoCapture cap(input_video);
 	vector<Mat> frames;
 	if (!cap.isOpened())	// if not success, exit program
 	{
@@ -48,9 +49,8 @@ vector<Mat> extract_frames(string input_video, bool extract_hsv)
 		cout << "Opened video: " << input_video << ", FPS = " << cap.get(CV_CAP_PROP_FPS) << endl;
 	
 	int nbFrames = 0;
-	bool video_finished = false;
 
-	while (!video_finished)
+	while (nbFrames < 10000)
 	{
 		// read frame
 		Mat frame;
@@ -62,7 +62,35 @@ vector<Mat> extract_frames(string input_video, bool extract_hsv)
 			frames.push_back(frame);
 		}
 		else
-			video_finished = true;
+			break;
+	}
+	cout << nbFrames << endl;
+	return frames;
+}
+
+// Generate an array of frames from a images folder
+// extract_hsv = true to have frames in hsv
+vector<Mat> extract_frames_folder(string input_folder, bool extract_hsv)
+{
+	vector<Mat> frames;
+	int nbFrames = 0;
+	
+	while (nbFrames < 10000)
+	{
+		// read frame
+		Mat frame = imread(input_folder + to_string(nbFrames) + ".png");
+		//waitKey();
+		//cout << input_folder + to_string(nbFrames) + ".png" << endl;
+		//imshow("frame", frame);
+		nbFrames++;
+		if (frame.data)
+		{
+			if (extract_hsv)
+				cvtColor(frame, frame, CV_BGR2HSV);
+			frames.push_back(frame);
+		}
+		else
+			break;
 	}
 	cout << nbFrames << endl;
 	return frames;

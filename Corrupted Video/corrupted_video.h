@@ -22,5 +22,6 @@ using namespace cv;
 void save_output_video(vector<Mat> frames, string output_video, int fps, Size video_size, bool hsv2bgr);
 void save_frames(vector<Mat> frames, string output_folder, bool hsv2bgr);
 vector<Mat> extract_frames(string input_video, bool extract_hsv);
+vector<Mat> extract_frames_folder(string input_folder, bool extract_hsv);
 vector<int> trace_frames(vector<bool> &indexes_check, vector<vector<pair<double, int>>> compare_histos);
 void drawHist(Mat src, string windowName);
