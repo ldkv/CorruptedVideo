@@ -5,6 +5,7 @@
 #include "opencv2/imgproc.hpp"
 #include "opencv2/core.hpp"
 #include "opencv2/features2d.hpp"
+#include "opencv2/xfeatures2d.hpp"
 
 #include <iostream>
 #include <string.h>
@@ -18,10 +19,32 @@
 using namespace std;
 using namespace chrono;
 using namespace cv;
+using namespace cv::xfeatures2d;
+
+#define blue  CV_RGB(0,0,255)
+#define green CV_RGB(0,255,0)
+#define red   CV_RGB(255,0,0)
+#define white CV_RGB(255,255,255)
+#define black CV_RGB(0,0,0)
+#define bound CV_RGB(127,127,127)
+
+struct greater_sort
+{
+	template<class T>
+	bool operator()(T const &a, T const &b) const { return a > b; }
+};
 
 void save_output_video(vector<Mat> frames, string output_video, int fps, Size video_size, bool hsv2bgr);
 void save_frames(vector<Mat> frames, string output_folder, bool hsv2bgr);
+void save_frames_with_index(vector<Mat> frames, vector<int> indexes, string output_folder, bool hsv2bgr);
 vector<Mat> extract_frames(string input_video, bool extract_hsv);
 vector<Mat> extract_frames_folder(string input_folder, bool extract_hsv);
-vector<int> trace_frames(vector<bool> &indexes_check, vector<vector<pair<double, int>>> compare_histos);
+vector<int> trace_frames(vector<bool> &indexes_check, vector<vector<pair<double, int>>> compare_arrays, double traceback_threshold, bool greater_compare);
 void drawHist(Mat src, string windowName);
+
+void rearrange(vector<Mat> &frames, vector<int> &indexes);
+void rearrange_local_OpticalFlow(vector<Mat> &frames, int index_begin, int size, vector<int> &indexes);
+void rearrange_local_FLANN(vector<Mat> &frames, int index_begin, int size, vector<int> &indexes);
+bool calcOpticalFlowDirection(Mat frame1, Mat frame2);
+vector<vector<pair<double, int>>> compare_histograms(vector<Mat> frames, vector<MatND> histos);
+vector<vector<pair<double, int>>> compare_FLANN_matcher(vector<Mat> frames);
