@@ -26,7 +26,6 @@ using namespace cv::xfeatures2d;
 #define red   CV_RGB(255,0,0)
 #define white CV_RGB(255,255,255)
 #define black CV_RGB(0,0,0)
-#define bound CV_RGB(127,127,127)
 
 struct greater_sort
 {
@@ -34,17 +33,24 @@ struct greater_sort
 	bool operator()(T const &a, T const &b) const { return a > b; }
 };
 
+// Core functions
+void rearrange_local_OpticalFlow(vector<Mat> &frames, int index_begin, int size, vector<int> &indexes);
+vector<Mat> filter_OpticalFlow(vector<Mat> frames);
+vector<Mat> filter_Histogram(vector<Mat> frames);
+vector<vector<pair<double, int>>> compare_histograms(vector<Mat> frames, vector<MatND> histos);
+vector<int> trace_frames(vector<bool> &indexes_check, vector<vector<pair<double, int>>> compare_arrays, double traceback_threshold, bool greater_compare);
+vector<MatND> calculate_Histogram(vector<Mat> frames);
+
+// Complimentary functions for video and frames manipulation
 void save_output_video(vector<Mat> frames, string output_video, int fps, Size video_size, bool hsv2bgr);
 void save_frames(vector<Mat> frames, string output_folder, bool hsv2bgr);
 void save_frames_with_index(vector<Mat> frames, vector<int> indexes, string output_folder, bool hsv2bgr);
 vector<Mat> extract_frames(string input_video, bool extract_hsv);
 vector<Mat> extract_frames_folder(string input_folder, bool extract_hsv);
-vector<int> trace_frames(vector<bool> &indexes_check, vector<vector<pair<double, int>>> compare_arrays, double traceback_threshold, bool greater_compare);
-void drawHist(Mat src, string windowName);
 
-void rearrange(vector<Mat> &frames, vector<int> &indexes);
-void rearrange_local_OpticalFlow(vector<Mat> &frames, int index_begin, int size, vector<int> &indexes);
-void rearrange_local_FLANN(vector<Mat> &frames, int index_begin, int size, vector<int> &indexes);
-bool calcOpticalFlowDirection(Mat frame1, Mat frame2);
-vector<vector<pair<double, int>>> compare_histograms(vector<Mat> frames, vector<MatND> histos);
+// Testing functions
 vector<vector<pair<double, int>>> compare_FLANN_matcher(vector<Mat> frames);
+void rearrange_local_FLANN(vector<Mat> &frames, int index_begin, int size, vector<int> &indexes);
+void rearrange(vector<Mat> &frames, vector<int> &indexes);
+bool calcOpticalFlowDirection(Mat frame1, Mat frame2);
+void drawHist(Mat src, string windowName);
